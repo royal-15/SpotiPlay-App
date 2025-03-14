@@ -1,0 +1,101 @@
+from customtkinter import *
+from settings import *
+from PIL import Image
+from tkinter import filedialog
+
+
+class inputFields(CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent, fg_color=WINDOW_FG, height=120)
+
+        # layout
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1, minsize=60, uniform="b")
+        self.rowconfigure(1, weight=1, minsize=60, uniform="b")
+
+        self.input1 = input1(self)
+        self.input1.grid(row=0, column=0, sticky="ew")
+
+        self.input2 = input2(self)
+        self.input2.grid(row=1, column=0)
+
+
+class input1(CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent, fg_color=WINDOW_FG, height=60)
+
+        self.urlInput = CTkEntry(
+            self,
+            placeholder_text="Song or playlist URL",
+            width=280,
+            text_color=INPUTFIELD_TEXT_COLOR,
+            font=INPUTFIELD_FONT,
+        )
+        self.urlInput.pack(side="left", padx=(15, 8))
+
+        self.checkUrlInput = CTkCheckBox(
+            self,
+            text="remember",
+            fg_color=GREEN_BTN_FG_HOVER,
+            hover_color=GREEN_BTN_FG,
+            font=BUTTON_FONT,
+        )
+        self.checkUrlInput.pack(side="left")
+
+    def getUrlInput(self):
+        return self.urlInput
+
+    def getCheckUrlInput(self):
+        return self.checkUrlInput
+
+
+class input2(CTkFrame):
+    def __init__(self, parent):
+        self.parent = parent
+        super().__init__(parent, fg_color=WINDOW_FG, height=60)
+
+        self.pathInput = CTkEntry(
+            self,
+            placeholder_text="Download folder path",
+            width=251,
+            text_color=INPUTFIELD_TEXT_COLOR,
+            font=INPUTFIELD_FONT,
+        )
+        self.pathInput.pack(side="left", padx=(15, 0))
+
+        image = CTkImage(light_image=Image.open(THREE_DOT_PNG), size=(10, 18))
+        self.folderPathInput = CTkButton(
+            self,
+            text="",
+            image=image,
+            text_color="white",
+            fg_color=FOLDER_BUTTON_FG,
+            hover_color=FOLDER_BUTTON_FG_HOVER,
+            font=BUTTON_FONT,
+            width=25,
+            command=self.onFolderSelectClick,
+        )
+        self.folderPathInput.pack(side="left", padx=(4, 8))
+
+        self.checkPathInput = CTkCheckBox(
+            self,
+            text="remember",
+            fg_color=GREEN_BTN_FG_HOVER,
+            hover_color=GREEN_BTN_FG,
+            font=BUTTON_FONT,
+        )
+        self.checkPathInput.pack(side="left")
+
+    def getPathInput(self):
+        return self.pathInput
+
+    def getFolderPathInput(self):
+        return self.folderPathInput
+
+    def getCheckPathInput(self):
+        return self.checkPathInput
+
+    def onFolderSelectClick(self):
+        path = filedialog.askdirectory()
+        self.pathInput.delete(0, "end")
+        self.pathInput.insert(0, path)
