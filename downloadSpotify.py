@@ -1,3 +1,4 @@
+import sys
 import subprocess
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +28,9 @@ class Spotify:
                 check=True,
                 capture_output=True,
                 text=True,
+                creationflags=(
+                    subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+                ),
             )
             print(f"✅ Downloaded: {url} in {download_folder}")
         except subprocess.CalledProcessError as e:
