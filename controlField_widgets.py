@@ -3,10 +3,23 @@ from settings import *
 
 
 class controlField(CTkFrame):
-    def __init__(self, parent, downloadMethod, resetMethod):
+    def __init__(self, parent, downloadMethod):
         super().__init__(parent)
 
+        self.status = statusLabel(self)
+        self.status.pack(side="left", padx=(15, 0))
+
         greenBtn(parent=self, text="Download", method=downloadMethod).pack(side="right")
+
+
+class statusLabel(CTkLabel):
+    def __init__(self, parent):
+        super().__init__(
+            parent,
+            text="@royal-15 Officials",
+            font=BUTTON_FONT,
+            text_color=STATUS_TEXT_COLOR,
+        )
 
 
 class greenBtn(CTkButton):

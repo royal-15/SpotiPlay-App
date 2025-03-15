@@ -5,7 +5,7 @@ from tkinter import filedialog
 
 
 class inputFields(CTkFrame):
-    def __init__(self, parent):
+    def __init__(self, parent, onCheck):
         super().__init__(parent, fg_color=WINDOW_FG, height=120)
 
         # layout
@@ -13,15 +13,19 @@ class inputFields(CTkFrame):
         self.rowconfigure(0, weight=1, minsize=60, uniform="b")
         self.rowconfigure(1, weight=1, minsize=60, uniform="b")
 
-        self.input1 = input1(self)
+        # declare variables for checkboxes
+        self.check_var_url = BooleanVar()
+        self.check_var_path = BooleanVar()
+
+        self.input1 = input1(self, var=self.check_var_url, onCheck=onCheck)
         self.input1.grid(row=0, column=0, sticky="ew")
 
-        self.input2 = input2(self)
+        self.input2 = input2(self, var=self.check_var_path, onCheck=onCheck)
         self.input2.grid(row=1, column=0)
 
 
 class input1(CTkFrame):
-    def __init__(self, parent):
+    def __init__(self, parent, var, onCheck):
         super().__init__(parent, fg_color=WINDOW_FG, height=60)
 
         self.urlInput = CTkEntry(
@@ -39,6 +43,8 @@ class input1(CTkFrame):
             fg_color=GREEN_BTN_FG_HOVER,
             hover_color=GREEN_BTN_FG,
             font=BUTTON_FONT,
+            variable=var,
+            command=onCheck,
         )
         self.checkUrlInput.pack(side="left")
 
@@ -50,7 +56,7 @@ class input1(CTkFrame):
 
 
 class input2(CTkFrame):
-    def __init__(self, parent):
+    def __init__(self, parent, var, onCheck):
         self.parent = parent
         super().__init__(parent, fg_color=WINDOW_FG, height=60)
 
@@ -83,6 +89,8 @@ class input2(CTkFrame):
             fg_color=GREEN_BTN_FG_HOVER,
             hover_color=GREEN_BTN_FG,
             font=BUTTON_FONT,
+            variable=var,
+            command=onCheck,
         )
         self.checkPathInput.pack(side="left")
 
