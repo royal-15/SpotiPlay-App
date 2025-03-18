@@ -19,3 +19,4 @@ INPUTFIELD_FONT = ("Poppins", 14, "bold")
 WINDOW_LOGO = "./resources/logo1.ico"
 UI_LOGO = "./resources/logo2.ico"
 THREE_DOT_PNG = "./resources/dots.png"
+RETRY_ICON = "./resources/retry.ico"

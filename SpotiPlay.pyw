@@ -47,6 +47,7 @@ class App(CTk):
 
         self.controls = controlField(
             self,
+            retryMethod=self.onRetryClick,
             downloadMethod=self.onDownloadClick,
         )
         self.controls.pack(side="bottom", fill="x")
@@ -67,12 +68,31 @@ class App(CTk):
         if self.inputFields.check_var_url.get():
             # write the url to the file
             url = self.inputFields.input1.getUrlInput().get()
-            self.dataWriter.write_url(url)
+            future = self.executor.submit(self.dataWriter.write_url, url)
+            self.futures.append(future)
 
         if self.inputFields.check_var_path.get():
             # write the path to the file
             path = self.inputFields.input2.getPathInput().get()
-            self.dataWriter.write_path(path)
+            future = self.executor.submit(self.dataWriter.write_path, path)
+            self.futures.append(future)
+
+    def onRetryClick(self, event):
+        if self.controls.downloadBtn.cget("state") == "disabled":
+            return
+
+        # ui updates
+        self.controls.status.configure(text="🔄 Retrying downloads, Please Wait!!")
+        self.controls.downloadBtn.configure(state="disabled")
+        self.controls.status.update_idletasks()
+        self.controls.downloadBtn.update_idletasks()
+
+        path = self.inputFields.input2.getPathInput().get()
+        future = self.executor.submit(self.spotify.retryDownloads, path)
+        self.futures.append(future)
+
+        # ui updates
+        future.add_done_callback(self.checkStatus)
 
     def onDownloadClick(self):
         # Get inputs
@@ -94,7 +114,11 @@ class App(CTk):
             self.futures.append(future)
 
         self.inputFields.input1.getUrlInput().delete(0, "end")
+
+        # ui update
         self.controls.status.configure(text="🔄 Downloading...")
+        self.controls.status.update_idletasks()
+
         self.after(3000, self.checkStatus)
 
     def isSpotifyLink(self, url: str) -> bool:
@@ -124,6 +148,7 @@ class App(CTk):
 
         if active_threads == 0 or all(f.done() for f in self.futures):
             self.controls.status.configure(text="✅ All Done")
+            self.controls.downloadBtn.configure(state="normal")
         else:
             self.controls.status.configure(text=f"🔄 Downloading...")
 
