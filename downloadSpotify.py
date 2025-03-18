@@ -1,12 +1,8 @@
 import os
 import sys
 import subprocess
-from dotenv import load_dotenv
 from mutagen.mp3 import MP3
 from concurrent.futures import ThreadPoolExecutor
-
-
-load_dotenv()
 
 
 class Spotify:

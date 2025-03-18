@@ -142,7 +142,7 @@ class App(CTk):
             self.destroy()
             print("🔴 Application closed.")
 
-    def checkStatus(self):
+    def checkStatus(self, future=None):
         # Check if any threads are running & update label accordingly
         active_threads = len(self.executor._threads)
 
