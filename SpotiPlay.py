@@ -1,0 +1,181 @@
+from customtkinter import CTk, set_appearance_mode
+from concurrent.futures import ThreadPoolExecutor
+from modules.settings import WINDOW_FG, WINDOW_LOGO
+
+from modules.titlebar_widgets import titleBar
+from modules.inputField_widgets import inputFields
+from modules.controlField_widgets import controlField
+
+
+class App(CTk):
+    def __init__(self):
+        # Setup
+        super().__init__(fg_color=WINDOW_FG)
+
+        # create an executor and spotify and youtube objects
+        self.futures = []
+        self.executor = ThreadPoolExecutor()
+
+        from modules.fileHandle import DataWriter
+        from modules.downloadSpotify import Spotify
+        from modules.downloadYoutube import Youtube
+
+        # Get FFMPEG path
+        self.FFMPEG_PATH = self.getFFmpegPath()
+
+        self.dataWriter = DataWriter("data.txt")
+        self.spotify = Spotify(self.executor, self.FFMPEG_PATH)
+        self.youtube = Youtube(self.executor, futures=self.futures, ffmpeg_path=self.FFMPEG_PATH)
+
+        set_appearance_mode("dark")
+        self.iconbitmap(WINDOW_LOGO)
+
+        # Window
+        self.geometry("600x200")
+        self.title("SpotiPlay")
+        self.minsize(600, 200)
+        self.maxsize(600, 200)
+
+        # Layout
+        titleBar(self).pack(side="top", fill="x", pady=(4, 2), padx=4)
+
+        self.inputFields = inputFields(self, onCheck=self.onCheck)
+        self.inputFields.pack(side="top", fill="x")
+
+        self.controls = controlField(
+            self,
+            retryMethod=self.onRetryClick,
+            downloadMethod=self.onDownloadClick,
+        )
+        self.controls.pack(side="bottom", fill="x")
+
+        # Set Closing Protocol
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        # fill the url and path from the file
+        url = self.dataWriter.read_url()
+        path = self.dataWriter.read_path()
+        self.inputFields.input1.getUrlInput().insert(0, url)
+        self.inputFields.input2.getPathInput().insert(0, path)
+
+        # Run
+        self.mainloop()
+
+    def onCheck(self):
+        if self.inputFields.check_var_url.get():
+            # write the url to the file
+            url = self.inputFields.input1.getUrlInput().get()
+            future = self.executor.submit(self.dataWriter.write_url, url)
+            self.futures.append(future)
+
+        if self.inputFields.check_var_path.get():
+            # write the path to the file
+            path = self.inputFields.input2.getPathInput().get()
+            future = self.executor.submit(self.dataWriter.write_path, path)
+            self.futures.append(future)
+
+    def onRetryClick(self, event):
+        if self.controls.downloadBtn.cget("state") == "disabled":
+            return
+
+        # ui updates
+        self.controls.status.configure(text="🔄 Retrying downloads, Please Wait!!")
+        self.controls.downloadBtn.configure(state="disabled")
+        self.controls.status.update_idletasks()
+        self.controls.downloadBtn.update_idletasks()
+
+        path = self.inputFields.input2.getPathInput().get()
+        future = self.executor.submit(self.spotify.retryDownloads, path)
+        self.futures.append(future)
+
+        # ui updates
+        future.add_done_callback(self.checkStatus)
+
+    def onDownloadClick(self):
+        # Get inputs
+        url = self.inputFields.input1.getUrlInput().get()
+        path = self.inputFields.input2.getPathInput().get()
+
+        if url == "" or path == "":
+            return
+
+        print(f"🔄 Downloading... '{url}'")
+
+        # Check if the URL is a Spotify link
+        if self.isSpotifyLink(url):
+            # self.spotify.download(url, path)
+            future = self.executor.submit(self.spotify.download, url, path)
+            self.futures.append(future)
+        else:  # It's a YouTube link
+            future = self.executor.submit(self.youtube.download, url, path)
+            self.futures.append(future)
+
+        self.inputFields.input1.getUrlInput().delete(0, "end")
+
+        # ui update
+        self.controls.status.configure(text="🔄 Downloading...")
+        self.controls.status.update_idletasks()
+
+        self.after(3000, self.checkStatus)
+
+    def isSpotifyLink(self, url: str) -> bool:
+        # Returns True if the given URL is a Spotify link, otherwise returns False for YouTube links.
+        youtube_patterns = [
+            r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/",
+        ]
+
+        import re
+
+        for pattern in youtube_patterns:
+            if re.match(pattern, url):
+                return False  # It's a YouTube link
+
+        return True  # It's not a YouTube link
+
+    def on_close(self):
+        from tkinter import messagebox
+
+        if messagebox.askyesno("Exit", "Are you sure you want to close?"):
+            # Shutdown executor (forcefully stop tasks)
+            self.executor.shutdown(wait=False, cancel_futures=True)
+
+            # Destroy the Tkinter window
+            self.destroy()
+            print("🔴 Application closed.")
+
+    def checkStatus(self, future=None):
+        # Check if any threads are running & update label accordingly
+        active_threads = len(self.executor._threads)
+
+        if active_threads == 0 or all(f.done() for f in self.futures):
+            self.controls.status.configure(text="✅ All Done")
+            self.controls.downloadBtn.configure(state="normal")
+        else:
+            self.controls.status.configure(text=f"🔄 Downloading...")
+
+        # Check again after 3 second
+        self.after(3000, self.checkStatus)
+
+    def getFFmpegPath(self):
+        import os
+        import sys
+
+        if getattr(sys, 'frozen', False):  # If running as a packaged .exe
+            CURRENT_DIR = sys._MEIPASS
+        else:  # If running as a script
+            CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+        # Move one level up (out of "modules" folder)
+        # ROOT_DIR = os.path.dirname(CURRENT_DIR)
+        # FFMPEG_PATH = os.path.join(ROOT_DIR, "ffmpeg.exe")
+
+        FFMPEG_PATH = os.path.join(CURRENT_DIR, "ffmpeg.exe")
+
+        return FFMPEG_PATH
+
+
+# Command to build the exe
+# pyinstaller --onefile --noconsole --icon="C:\Users\rajat\Desktop\SpotiPlay Installer\Play\resources\logo1.ico" --add-data "modules;modules" --add-binary "ffmpeg.exe;." --hidden-import=customtkinter --hidden-import=pillow --hidden-import=mutagen --hidden-import=yt_dlp --hidden-import=spotdl SpotiPlay.py
+
+
+App()
