@@ -20,10 +20,14 @@ class App(CTk):
         from modules.downloadSpotify import Spotify
         from modules.downloadYoutube import Youtube
 
-        # Get FFMPEG path
-        self.FFMPEG_PATH = self.getFFmpegPath()
+        # Get paths
+        self.getPaths()
+        
+        # for debugging
+        # from tkinter import messagebox
+        # messagebox.showinfo("Paths", f"DATA_PATH: {self.DATA_PATH}\nFFMPEG_PATH: {self.FFMPEG_PATH}")
 
-        self.dataWriter = DataWriter("data.txt")
+        self.dataWriter = DataWriter()
         self.spotify = Spotify(self.executor, self.FFMPEG_PATH)
         self.youtube = Youtube(self.executor, futures=self.futures, ffmpeg_path=self.FFMPEG_PATH)
 
@@ -39,7 +43,7 @@ class App(CTk):
         # Layout
         titleBar(self).pack(side="top", fill="x", pady=(4, 2), padx=4)
 
-        self.inputFields = inputFields(self, onCheck=self.onCheck)
+        self.inputFields = inputFields(self, onCheckURL=self.onCheckURL, onCheckPATH=self.onCheckPATH)
         self.inputFields.pack(side="top", fill="x")
 
         self.controls = controlField(
@@ -61,13 +65,14 @@ class App(CTk):
         # Run
         self.mainloop()
 
-    def onCheck(self):
+    def onCheckURL(self):
         if self.inputFields.check_var_url.get():
             # write the url to the file
             url = self.inputFields.input1.getUrlInput().get()
             future = self.executor.submit(self.dataWriter.write_url, url)
             self.futures.append(future)
-
+            
+    def onCheckPATH(self):
         if self.inputFields.check_var_path.get():
             # write the path to the file
             path = self.inputFields.input2.getPathInput().get()
@@ -156,7 +161,7 @@ class App(CTk):
         # Check again after 3 second
         self.after(3000, self.checkStatus)
 
-    def getFFmpegPath(self):
+    def getPaths(self):
         import os
         import sys
 
@@ -168,14 +173,13 @@ class App(CTk):
         # Move one level up (out of "modules" folder)
         # ROOT_DIR = os.path.dirname(CURRENT_DIR)
         # FFMPEG_PATH = os.path.join(ROOT_DIR, "ffmpeg.exe")
-
-        FFMPEG_PATH = os.path.join(CURRENT_DIR, "ffmpeg.exe")
-
-        return FFMPEG_PATH
+        
+        self.FFMPEG_PATH = os.path.join(CURRENT_DIR, "ffmpeg.exe")
+        
 
 
 # Command to build the exe
-# pyinstaller --onefile --noconsole --icon="C:\Users\rajat\Desktop\SpotiPlay Installer\Play\resources\logo1.ico" --add-data "modules;modules" --add-binary "ffmpeg.exe;." --hidden-import=customtkinter --hidden-import=pillow --hidden-import=mutagen --hidden-import=yt_dlp --hidden-import=spotdl SpotiPlay.py
+# pyinstaller --onefile --noconsole --icon="C:\Users\rajat\Desktop\My Projects\SpotiPlay App\resources\logo1.ico" --add-data "modules;modules" --add-binary "ffmpeg.exe;." --hidden-import=customtkinter --hidden-import=pillow --hidden-import=mutagen --hidden-import=yt_dlp --hidden-import=spotdl SpotiPlay.py
 
 
 App()

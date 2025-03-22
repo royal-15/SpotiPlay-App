@@ -1,0 +1,6 @@
+customtkinter>=5.2.0
+pillow>=10.0.0
+mutagen>=1.47.0
+yt-dlp>=2023.12.30
+spotdl>=4.2.0
+appdirs>=1.4.4 

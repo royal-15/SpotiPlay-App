@@ -5,7 +5,7 @@ from tkinter import filedialog
 
 
 class inputFields(CTkFrame):
-    def __init__(self, parent, onCheck):
+    def __init__(self, parent, onCheckURL, onCheckPATH):
         super().__init__(parent, fg_color=WINDOW_FG, height=120)
 
         # layout
@@ -17,10 +17,10 @@ class inputFields(CTkFrame):
         self.check_var_url = BooleanVar()
         self.check_var_path = BooleanVar()
 
-        self.input1 = input1(self, var=self.check_var_url, onCheck=onCheck)
+        self.input1 = input1(self, var=self.check_var_url, onCheck=onCheckURL)
         self.input1.grid(row=0, column=0, sticky="ew")
 
-        self.input2 = input2(self, var=self.check_var_path, onCheck=onCheck)
+        self.input2 = input2(self, var=self.check_var_path, onCheck=onCheckPATH)
         self.input2.grid(row=1, column=0)
 
 
