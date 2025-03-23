@@ -49,7 +49,7 @@ class App(CTk):
         """Setup remaining components after UI is visible"""
         # Create executor and initialize objects
         self.futures = []
-        self.executor = ThreadPoolExecutor()
+        self.executor = ThreadPoolExecutor(max_workers=5)
 
         # Import modules only when needed
         from modules.fileHandle import DataWriter
