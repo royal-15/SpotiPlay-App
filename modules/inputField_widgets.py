@@ -36,6 +36,9 @@ class input1(CTkFrame):
             font=INPUTFIELD_FONT,
         )
         self.urlInput.pack(side="left", padx=(15, 8))
+        
+        # Bind right-click event
+        self.urlInput.bind("<Button-3>", self.onRightClick)
 
         self.checkUrlInput = CTkCheckBox(
             self,
@@ -53,6 +56,17 @@ class input1(CTkFrame):
 
     def getCheckUrlInput(self):
         return self.checkUrlInput
+
+    def onRightClick(self, event):
+        """Handle right-click event to paste clipboard content"""
+        try:
+            from tkinter import TclError
+            clipboard_content = self.clipboard_get()
+            self.urlInput.delete(0, "end")  # Clear current content
+            self.urlInput.insert(0, clipboard_content)
+        except TclError:
+            # If clipboard is empty or contains non-text data
+            pass
 
 
 class input2(CTkFrame):

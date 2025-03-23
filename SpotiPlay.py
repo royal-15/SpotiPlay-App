@@ -2,35 +2,19 @@ from customtkinter import CTk, set_appearance_mode
 from concurrent.futures import ThreadPoolExecutor
 from modules.settings import WINDOW_FG, WINDOW_LOGO
 
-from modules.titlebar_widgets import titleBar
-from modules.inputField_widgets import inputFields
-from modules.controlField_widgets import controlField
-
-
 class App(CTk):
     def __init__(self):
         # Setup
         super().__init__(fg_color=WINDOW_FG)
 
-        # create an executor and spotify and youtube objects
-        self.futures = []
-        self.executor = ThreadPoolExecutor()
-
-        from modules.fileHandle import DataWriter
-        from modules.downloadSpotify import Spotify
-        from modules.downloadYoutube import Youtube
-
-        # Get paths
-        self.getPaths()
+        # Initialize basic UI first
+        self.setup_basic_ui()
         
-        # for debugging
-        # from tkinter import messagebox
-        # messagebox.showinfo("Paths", f"DATA_PATH: {self.DATA_PATH}\nFFMPEG_PATH: {self.FFMPEG_PATH}")
+        # Defer heavy operations
+        self.after(100, self.setup_remaining_components)
 
-        self.dataWriter = DataWriter()
-        self.spotify = Spotify(self.executor, self.FFMPEG_PATH)
-        self.youtube = Youtube(self.executor, futures=self.futures, ffmpeg_path=self.FFMPEG_PATH)
-
+    def setup_basic_ui(self):
+        """Setup the basic UI components that are immediately visible"""
         set_appearance_mode("dark")
         self.iconbitmap(WINDOW_LOGO)
 
@@ -39,6 +23,11 @@ class App(CTk):
         self.title("SpotiPlay")
         self.minsize(600, 200)
         self.maxsize(600, 200)
+
+        # Import UI components only when needed
+        from modules.titlebar_widgets import titleBar
+        from modules.inputField_widgets import inputFields
+        from modules.controlField_widgets import controlField
 
         # Layout
         titleBar(self).pack(side="top", fill="x", pady=(4, 2), padx=4)
@@ -56,14 +45,33 @@ class App(CTk):
         # Set Closing Protocol
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        # fill the url and path from the file
+    def setup_remaining_components(self):
+        """Setup remaining components after UI is visible"""
+        # Create executor and initialize objects
+        self.futures = []
+        self.executor = ThreadPoolExecutor()
+
+        # Import modules only when needed
+        from modules.fileHandle import DataWriter
+        from modules.downloadSpotify import Spotify
+        from modules.downloadYoutube import Youtube
+
+        # Get paths
+        self.getPaths()
+        
+        self.dataWriter = DataWriter()
+        self.spotify = Spotify(self.executor, self.FFMPEG_PATH)
+        self.youtube = Youtube(self.executor, futures=self.futures, ffmpeg_path=self.FFMPEG_PATH)
+
+        # Fill saved data
+        self.fill_saved_data()
+
+    def fill_saved_data(self):
+        """Fill the input fields with saved data"""
         url = self.dataWriter.read_url()
         path = self.dataWriter.read_path()
         self.inputFields.input1.getUrlInput().insert(0, url)
         self.inputFields.input2.getPathInput().insert(0, path)
-
-        # Run
-        self.mainloop()
 
     def onCheckURL(self):
         if self.inputFields.check_var_url.get():
@@ -182,4 +190,6 @@ class App(CTk):
 # pyinstaller --onefile --noconsole --icon="C:\Users\rajat\Desktop\My Projects\SpotiPlay App\resources\logo1.ico" --add-data "modules;modules" --add-binary "ffmpeg.exe;." --hidden-import=customtkinter --hidden-import=pillow --hidden-import=mutagen --hidden-import=yt_dlp --hidden-import=spotdl SpotiPlay.py
 
 
-App()
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()  # Start the main event loop
