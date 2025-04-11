@@ -2,6 +2,7 @@ from customtkinter import CTk, set_appearance_mode
 from concurrent.futures import ThreadPoolExecutor
 from modules.settings import WINDOW_FG, WINDOW_LOGO
 
+
 class App(CTk):
     def __init__(self):
         # Setup
@@ -9,7 +10,7 @@ class App(CTk):
 
         # Initialize basic UI first
         self.setup_basic_ui()
-        
+
         # Defer heavy operations
         self.after(100, self.setup_remaining_components)
 
@@ -32,7 +33,9 @@ class App(CTk):
         # Layout
         titleBar(self).pack(side="top", fill="x", pady=(4, 2), padx=4)
 
-        self.inputFields = inputFields(self, onCheckURL=self.onCheckURL, onCheckPATH=self.onCheckPATH)
+        self.inputFields = inputFields(
+            self, onCheckURL=self.onCheckURL, onCheckPATH=self.onCheckPATH
+        )
         self.inputFields.pack(side="top", fill="x")
 
         self.controls = controlField(
@@ -57,21 +60,29 @@ class App(CTk):
         from modules.downloadYoutube import Youtube
 
         # Get paths
-        self.getPaths()
-        
+        # self.getPaths()
+
         self.dataWriter = DataWriter()
-        self.spotify = Spotify(self.executor, self.FFMPEG_PATH)
-        self.youtube = Youtube(self.executor, futures=self.futures, ffmpeg_path=self.FFMPEG_PATH)
+        self.spotify = Spotify(self.executor, self.showMessage)
+        self.youtube = Youtube(
+            self.executor,
+            futures=self.futures,
+            showMessage=self.showMessage,
+        )
 
         # Fill saved data
         self.fill_saved_data()
 
     def fill_saved_data(self):
         """Fill the input fields with saved data"""
-        url = self.dataWriter.read_url()
-        path = self.dataWriter.read_path()
-        self.inputFields.input1.getUrlInput().insert(0, url)
-        self.inputFields.input2.getPathInput().insert(0, path)
+        try:
+            url = self.dataWriter.read_url()
+            path = self.dataWriter.read_path()
+            self.inputFields.input1.getUrlInput().insert(0, url)
+            self.inputFields.input2.getPathInput().insert(0, path)
+        except Exception as e:
+            warning_message = f"Failed to fill saved data: {str(e)}"
+            self.showMessage("Data Loading Error", warning_message, "w")
 
     def onCheckURL(self):
         if self.inputFields.check_var_url.get():
@@ -79,7 +90,7 @@ class App(CTk):
             url = self.inputFields.input1.getUrlInput().get()
             future = self.executor.submit(self.dataWriter.write_url, url)
             self.futures.append(future)
-            
+
     def onCheckPATH(self):
         if self.inputFields.check_var_path.get():
             # write the path to the file
@@ -88,48 +99,63 @@ class App(CTk):
             self.futures.append(future)
 
     def onRetryClick(self, event):
-        if self.controls.downloadBtn.cget("state") == "disabled":
-            return
+        try:
+            if self.controls.downloadBtn.cget("state") == "disabled":
+                return
 
-        # ui updates
-        self.controls.status.configure(text="🔄 Retrying downloads, Please Wait!!")
-        self.controls.downloadBtn.configure(state="disabled")
-        self.controls.status.update_idletasks()
-        self.controls.downloadBtn.update_idletasks()
+            # ui updates
+            self.controls.status.configure(text="🔄 Retrying downloads, Please Wait!!")
+            self.controls.downloadBtn.configure(state="disabled")
+            self.controls.status.update_idletasks()
+            self.controls.downloadBtn.update_idletasks()
 
-        path = self.inputFields.input2.getPathInput().get()
-        future = self.executor.submit(self.spotify.retryDownloads, path)
-        self.futures.append(future)
+            path = self.inputFields.input2.getPathInput().get()
+            future = self.executor.submit(self.spotify.retryDownloads, path)
+            self.futures.append(future)
 
-        # ui updates
-        future.add_done_callback(self.checkStatus)
+            # ui updates
+            future.add_done_callback(self.checkStatus)
+        except Exception as e:
+            warning_message = f"Failed to retry downloads: {str(e)}"
+            self.showMessage("Retry Error", warning_message, "w")
 
     def onDownloadClick(self):
-        # Get inputs
-        url = self.inputFields.input1.getUrlInput().get()
-        path = self.inputFields.input2.getPathInput().get()
+        # self.showMessage("Debug", "Inside onDownloadClick", "i")
 
-        if url == "" or path == "":
-            return
+        try:
+            # Get inputs
+            url = self.inputFields.input1.getUrlInput().get()
+            path = self.inputFields.input2.getPathInput().get()
 
-        print(f"🔄 Downloading... '{url}'")
+            if url == "" or path == "":
+                return
 
-        # Check if the URL is a Spotify link
-        if self.isSpotifyLink(url):
-            # self.spotify.download(url, path)
-            future = self.executor.submit(self.spotify.download, url, path)
-            self.futures.append(future)
-        else:  # It's a YouTube link
-            future = self.executor.submit(self.youtube.download, url, path)
-            self.futures.append(future)
+            print(f"🔄 Downloading... '{url}'")
 
-        self.inputFields.input1.getUrlInput().delete(0, "end")
+            # Check if the URL is a Spotify link
+            if self.isSpotifyLink(url):
 
-        # ui update
-        self.controls.status.configure(text="🔄 Downloading...")
-        self.controls.status.update_idletasks()
+                # self.showMessage("Debug", "It's a Spotify link", "i")
 
-        self.after(3000, self.checkStatus)
+                future = self.executor.submit(self.spotify.download, url, path)
+                self.futures.append(future)
+            else:  # It's a YouTube link
+
+                # self.showMessage("Debug", "It's a YouTube link", "i")
+
+                future = self.executor.submit(self.youtube.download, url, path)
+                self.futures.append(future)
+
+            self.inputFields.input1.getUrlInput().delete(0, "end")
+
+            # ui update
+            self.controls.status.configure(text="🔄 Downloading...")
+            self.controls.status.update_idletasks()
+
+            self.after(3000, self.checkStatus)
+        except Exception as e:
+            error_message = f"Failed to start download: {str(e)}"
+            self.showMessage("Download Error", error_message, "e")
 
     def isSpotifyLink(self, url: str) -> bool:
         # Returns True if the given URL is a Spotify link, otherwise returns False for YouTube links.
@@ -169,25 +195,39 @@ class App(CTk):
         # Check again after 3 second
         self.after(3000, self.checkStatus)
 
-    def getPaths(self):
-        import os
-        import sys
+    # def getPaths(self):
+    #     try:
+    #         import os
+    #         import sys
 
-        if getattr(sys, 'frozen', False):  # If running as a packaged .exe
-            CURRENT_DIR = sys._MEIPASS
-        else:  # If running as a script
-            CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+    #         if getattr(sys, "frozen", False):  # If running as a packaged .exe
+    #             CURRENT_DIR = sys._MEIPASS
+    #         else:  # If running as a script
+    #             CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-        # Move one level up (out of "modules" folder)
-        # ROOT_DIR = os.path.dirname(CURRENT_DIR)
-        # FFMPEG_PATH = os.path.join(ROOT_DIR, "ffmpeg.exe")
-        
-        self.FFMPEG_PATH = os.path.join(CURRENT_DIR, "ffmpeg.exe")
-        
+    #         self.FFMPEG_PATH = os.path.join(CURRENT_DIR, "ffmpeg.exe")
+    #     except Exception as e:
+    #         error_message = f"Failed to get paths: {str(e)}"
+    #         self.showMessage("Path Error", error_message, "e")
+
+    def showMessage(self, title, message, type="error"):
+        from tkinter import messagebox
+
+        if type == "i":
+            print(f"ℹ️ INFO - {title}: {message}")
+            messagebox.showinfo(title, message)
+
+        if type == "w":
+            print(f"⚠️ WARNING - {title}: {message}")
+            messagebox.showwarning(title, message)
+
+        if type == "er":
+            print(f"❌ ERROR - {title}: {message}")
+            messagebox.showerror(title, message)
 
 
 # Command to build the exe
-# pyinstaller --onefile --noconsole --icon="C:\Users\rajat\Desktop\My Projects\SpotiPlay App\resources\logo1.ico" --add-data "modules;modules" --add-binary "ffmpeg.exe;." --hidden-import=customtkinter --hidden-import=pillow --hidden-import=mutagen --hidden-import=yt_dlp --hidden-import=spotdl SpotiPlay.py
+# pyinstaller --onefile --noconsole --icon="C:\Users\rajat\Desktop\My Projects\SpotiPlay App\resources\logo1.ico" --add-data "modules;modules" --hidden-import=customtkinter --hidden-import=pillow --hidden-import=mutagen --hidden-import=yt_dlp SpotiPlay.py
 
 
 if __name__ == "__main__":

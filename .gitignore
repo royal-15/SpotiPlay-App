@@ -15,6 +15,7 @@ build/
 develop-eggs/
 dist/*
 !dist/installers/
+!dist/SpotiPlay.iss
 downloads/
 eggs/
 .eggs/

@@ -5,19 +5,23 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 class Spotify:
-    def __init__(self, executor: ThreadPoolExecutor, ffmpeg_path: str):
+    def __init__(self, executor: ThreadPoolExecutor, showMessage):
         self.executor = executor
-        self.FFMPEG_PATH = ffmpeg_path
+        self.showMessage = showMessage
 
     def download(self, url, download_folder):
-        import os
 
-        env = os.environ.copy()
-        env["FFMPEG_PATH"] = self.FFMPEG_PATH
+        # self.showMessage("Debug", "Inside Spotify.download", "i")
 
         try:
+
+            # self.showMessage("Debug", "Running Spotdl command", "i")
+
+            # Run the spotdl command to download the song
             result = subprocess.run(
                 [
+                    "PortablePython\\python.exe",
+                    "-m",
                     "spotdl",
                     "download",
                     url,
@@ -31,15 +35,25 @@ class Spotify:
                 check=True,
                 capture_output=True,
                 text=True,
-                env=env,
                 creationflags=(
                     subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
                 ),
             )
+
+            # self.showMessage("Debug", f"{result.stdout}", "i")
+
+            self.showMessage(
+                "Download Complete", f"Downloaded {url} to {download_folder}", "i"
+            )
+
             print(f"✅ Downloaded: {url} in {download_folder}")
         except subprocess.CalledProcessError as e:
-            print(f"❌ Failed to download: {self.getSongName(url)}")
-            print(f"Error message:\n{e.stderr}")
+            error_message = f"❌ Failed to download: {url}\nError: {e.stderr.strip()}"
+            self.showMessage("Download Error", error_message, "e")
+        except Exception as e:
+            self.showMessage(
+                "Error", f"An unexpected error occurred: {e.stderr.strip()}", "e"
+            )
 
     def isFileIncomplete(self, file_path):
         # Check if an MP3 file is incomplete by verifying its metadata.
@@ -58,9 +72,6 @@ class Spotify:
         print("🔍 Checking for incomplete downloads...")
 
         import os
-
-        env = os.environ.copy()
-        env["FFMPEG_PATH"] = self.FFMPEG_PATH
 
         for file_name in os.listdir(path):
             if file_name.endswith(".mp3"):
@@ -88,11 +99,11 @@ class Spotify:
                             check=True,
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
-                            env=env,
                             creationflags=(
                                 subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
                             ),
                         )
                         print(f"✅ Successfully re-downloaded: {file_name}")
                     except subprocess.CalledProcessError:
-                        print(f"❌ Failed to re-download: {file_name}")
+                        error_message = f"Failed to re-download: {file_name}"
+                        self.showMessage("Re-download Error", error_message, "e")
