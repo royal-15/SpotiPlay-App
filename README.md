@@ -1,4 +1,4 @@
-# SpotiPlay App
+# SpotiPlay
 
 A modern, user-friendly desktop application for downloading music from Spotify and YouTube. Built with Python and CustomTkinter, SpotiPlay offers a sleek interface and seamless download experience.
 
